@@ -9,11 +9,44 @@ struct FileBlock {
     key  @1: Data;  # Encryption key
 }
 
+# Chunk represents the metadata of a chunk of data.
+# It is stored in some metadata server as part of its Metadata owner.
+# A chunk is to be be stored in one or multiple zstordb servers,
+# where the chunk is referenced by its key and each shard addresses a zstordb server.
+struct FileChunk {
+    size @0: UInt64;
+    # Size in bytes represents the total size of all data (objects)
+    # this chunk containes
+
+    hash @1: Data;
+    # Hash contains the checksum/signature of the entire chunk,
+	# meaning the data of all objects (of this chunk) combined.
+
+    objects @2: List(ChunkObject);
+    # Objects defines the metadata of the objects
+    # that make up this chunk.
+}
+
+# Object represents the metadata of an object,
+# which makes up alone or together with other objects, a chunk.
+# An object is stored on a shard (see: zstordb server),
+# and is defined by a unique key, generated and defined by the server it is stored on.
+struct ChunkObject {
+    key @1: Data;
+    # Key of the Object
+
+    shardid @2: Text;
+    # ShardID defines the ID of the shard the object is stored on
+}
+
 struct File {
     # blocksize in bytes = blocksize * 4 KB, blocksize is same for all parts of file
     # max blocksize = 128 MB
     blockSize   @0: UInt16;
-    blocks      @1: List(FileBlock);    # list of the hashes of the blocks
+    union{
+        blocks      @1: List(FileBlock);    # list of the hashes of the blocks (old version that works against ardb)
+        chunks      @2: List(FileChunk);    # list of the file chunks (new version that works against 0-stor)
+    }
 }
 
 struct Link {
