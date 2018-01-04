@@ -32,10 +32,10 @@ struct FileChunk {
 # An object is stored on a shard (see: zstordb server),
 # and is defined by a unique key, generated and defined by the server it is stored on.
 struct ChunkObject {
-    key @1: Data;
+    key @0: Data;
     # Key of the Object
 
-    shardid @2: Text;
+    shardid @1: Text;
     # ShardID defines the ID of the shard the object is stored on
 }
 
