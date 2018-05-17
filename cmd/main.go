@@ -25,6 +25,7 @@ type Cmd struct {
 	URL     string
 	Reset   bool
 	Debug   bool
+	P2PPort int
 }
 
 func (c *Cmd) Validate() []error {
@@ -65,7 +66,7 @@ func mount(cmd *Cmd, target string) error {
 		}
 	}
 
-	aydo, err := storage.NewARDBStorage(u)
+	ardb, err := storage.NewARDBStorage(u)
 	if err != nil {
 		return err
 	}
@@ -75,8 +76,9 @@ func mount(cmd *Cmd, target string) error {
 		Backend:   cmd.Backend,
 		Cache:     cmd.Cache,
 		Target:    target,
-		Storage:   aydo,
+		Storage:   ardb,
 		Reset:     cmd.Reset,
+		P2PPort:   cmd.P2PPort,
 	})
 
 	if err != nil {
@@ -142,6 +144,7 @@ func main() {
 	flag.StringVar(&cmd.Backend, "backend", "/tmp/backend", "Working directory of the filesystem (cache and others)")
 	flag.StringVar(&cmd.Cache, "cache", "", "Optional external (common) cache directory, if not provided a temporary cache location will be created under `backend`")
 	flag.StringVar(&cmd.URL, "storage-url", "ardb://hub.gig.tech:16379", "Storage url")
+	flag.IntVar(&cmd.P2PPort, "p2p", 9942, "Listen address for the p2p node")
 	flag.BoolVar(&cmd.Debug, "debug", false, "Print debug messages")
 
 	flag.Parse()

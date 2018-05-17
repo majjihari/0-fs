@@ -2,13 +2,15 @@ package rofs
 
 import (
 	"fmt"
-	"github.com/zero-os/0-fs/meta"
-	"github.com/zero-os/0-fs/storage"
+	"math"
+
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 	"github.com/op/go-logging"
-	"math"
+	"github.com/zero-os/0-fs/meta"
+	"github.com/zero-os/0-fs/p2p"
+	"github.com/zero-os/0-fs/storage"
 )
 
 const (
@@ -24,14 +26,16 @@ type filesystem struct {
 	cache   string
 	store   meta.MetaStore
 	storage storage.Storage
+	p2pNode *p2p.Node
 }
 
-func New(storage storage.Storage, store meta.MetaStore, cache string) pathfs.FileSystem {
+func New(storage storage.Storage, store meta.MetaStore, cache string, p2pNode *p2p.Node) pathfs.FileSystem {
 	fs := &filesystem{
 		FileSystem: pathfs.NewDefaultFileSystem(),
 		storage:    storage,
 		store:      store,
 		cache:      cache,
+		p2pNode:    p2pNode,
 	}
 
 	return pathfs.NewReadonlyFileSystem(fs)
@@ -91,6 +95,7 @@ func (fs *filesystem) Open(name string, flags uint32, context *fuse.Context) (no
 	f, err := fs.checkAndGet(m)
 	if err != nil {
 		log.Errorf("Failed to open/download the file: %s", err)
+		return nil, fuse.EIO
 	}
 
 	return nodefs.NewReadOnlyFile(nodefs.NewLoopbackFile(f)), fuse.OK

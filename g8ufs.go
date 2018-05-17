@@ -2,18 +2,20 @@ package g8ufs
 
 import (
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/fuse/nodefs"
-	"github.com/hanwen/go-fuse/fuse/pathfs"
-	"github.com/op/go-logging"
-	"github.com/zero-os/0-fs/meta"
-	"github.com/zero-os/0-fs/rofs"
-	"github.com/zero-os/0-fs/storage"
 	"os"
 	"os/exec"
 	"path"
 	"syscall"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/op/go-logging"
+	"github.com/zero-os/0-fs/meta"
+	"github.com/zero-os/0-fs/p2p"
+	"github.com/zero-os/0-fs/rofs"
+	"github.com/zero-os/0-fs/storage"
 )
 
 var (
@@ -43,6 +45,8 @@ type Options struct {
 	Storage storage.Storage
 	//Reset if set, will wipe up the backend clean before mounting.
 	Reset bool
+	// P2P listen port of the p2p node
+	P2PPort int
 }
 
 type G8ufs struct {
@@ -75,8 +79,15 @@ func Mount(opt *Options) (*G8ufs, error) {
 
 	var server *fuse.Server
 	if opt.MetaStore != nil {
-		fs := rofs.New(opt.Storage, opt.MetaStore, ca)
-		var err error
+
+		host, err := p2p.MakeBasicHost(opt.P2PPort, 0)
+		if err != nil {
+			return nil, err
+		}
+		p2pNode := p2p.NewNode(host, ca)
+
+		fs := rofs.New(opt.Storage, opt.MetaStore, ca, p2pNode)
+
 		server, err = fuse.NewServer(
 			nodefs.NewFileSystemConnector(
 				pathfs.NewPathNodeFs(fs, nil).Root(),

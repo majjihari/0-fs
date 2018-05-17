@@ -8,5 +8,9 @@ ldflags = '-w -s -X $(base).Branch=$(branch) -X $(base).Revision=$(revision) -X 
 
 build:
 	cd cmd && go build -ldflags $(ldflags) -o ../g8ufs
+
+install: build
+	cp g8ufs ${GOPATH}/bin
+
 capnp:
 	capnp compile -I${GOPATH}/src/zombiezen.com/go/capnproto2/std -ogo:cap.np model.capnp
