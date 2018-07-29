@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/op/go-logging"
 	"github.com/zero-os/0-fs"
@@ -22,7 +23,7 @@ type Cmd struct {
 	MetaDB  string
 	Backend string
 	Cache   string
-	URL     string
+	URL     []string
 	Reset   bool
 	Debug   bool
 }
@@ -32,9 +33,14 @@ func (c *Cmd) Validate() []error {
 }
 
 func mount(cmd *Cmd, target string) error {
-	u, err := url.Parse(cmd.URL)
-	if err != nil {
-		return err
+	var urls []*url.URL
+	for _, urlStr := range cmd.URL {
+		u, err := url.Parse(urlStr)
+		if err != nil {
+			return err
+		}
+
+		urls = append(urls, u)
 	}
 
 	// Test if the meta path is a directory
@@ -65,7 +71,7 @@ func mount(cmd *Cmd, target string) error {
 		}
 	}
 
-	aydo, err := storage.NewARDBStorage(u)
+	aydo, err := storage.NewARDBStorage(urls...)
 	if err != nil {
 		return err
 	}
@@ -136,14 +142,17 @@ func unpack(r io.Reader, dest string) error {
 func main() {
 	var cmd Cmd
 	var version bool
+	var storageURL string
+
 	flag.BoolVar(&version, "version", false, "Print version and exit")
 	flag.BoolVar(&cmd.Reset, "reset", false, "Reset filesystem on mount")
 	flag.StringVar(&cmd.MetaDB, "meta", "", "Path to metadata database (optional)")
 	flag.StringVar(&cmd.Backend, "backend", "/tmp/backend", "Working directory of the filesystem (cache and others)")
 	flag.StringVar(&cmd.Cache, "cache", "", "Optional external (common) cache directory, if not provided a temporary cache location will be created under `backend`")
-	flag.StringVar(&cmd.URL, "storage-url", "ardb://hub.gig.tech:16379", "Storage url")
+	flag.StringVar(&storageURL, "storage-url", "ardb://hub.gig.tech:16379", "Storage url")
 	flag.BoolVar(&cmd.Debug, "debug", false, "Print debug messages")
 
+	cmd.URL = strings.Split(storageURL, ",")
 	flag.Parse()
 
 	if version {
